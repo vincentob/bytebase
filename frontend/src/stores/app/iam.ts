@@ -67,12 +67,35 @@ const recoverFromIamPolicyConflict = async (
   await refetch().catch(() => undefined);
 };
 
+import {
+  fetchSelfPermissionSnapshot,
+  permissionPoCEnabled,
+} from "./selfPermission";
+
 export const createIamSlice: AppSliceCreator<IamSlice> = (set, get) => ({
   projectPoliciesByName: {},
   projectPolicyRequests: {},
   roles: [],
 
   loadWorkspacePermissionState: async () => {
+    if (permissionPoCEnabled()) {
+      await get().loadCurrentUser();
+      const snapshot = await fetchSelfPermissionSnapshot();
+      set((state) => ({
+        roles: [
+          ...new Map(
+            [...state.roles, ...snapshot.roles].map((role) => [role.name, role])
+          ).values(),
+        ],
+        roleList: snapshot.roles,
+        workspacePolicy: snapshot.workspacePolicy,
+      }));
+      if (
+        !get().hasWorkspacePermission("bb.roles.list") ||
+        !get().hasWorkspacePermission("bb.workspaces.getIamPolicy")
+      )
+        return;
+    }
     await Promise.all([
       get().loadCurrentUser(),
       get().loadServerInfo(),
@@ -153,6 +176,26 @@ export const createIamSlice: AppSliceCreator<IamSlice> = (set, get) => ({
     if (pending) return pending;
 
     await get().loadWorkspacePermissionState();
+
+    if (
+      permissionPoCEnabled() &&
+      !get().hasWorkspacePermission("bb.workspaces.getIamPolicy")
+    ) {
+      const snapshot = await fetchSelfPermissionSnapshot(project);
+      const policy = snapshot.projectPolicies[project];
+      set((state) => ({
+        roles: [
+          ...new Map(
+            [...state.roles, ...snapshot.roles].map((role) => [role.name, role])
+          ).values(),
+        ],
+        projectPoliciesByName: {
+          ...state.projectPoliciesByName,
+          ...snapshot.projectPolicies,
+        },
+      }));
+      return policy;
+    }
 
     const request = projectServiceClientConnect
       .getIamPolicy(

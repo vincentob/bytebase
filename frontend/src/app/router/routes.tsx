@@ -70,3 +70,31 @@ export function buildRouteNameIndex(
   }
   return index;
 }
+
+export function buildRoutePermissionIndex(
+  list: RouteObject[] = routes,
+  inherited: (() => string[])[] = []
+): Map<string, () => string[]> {
+  const index = new Map<string, () => string[]>();
+  for (const route of list) {
+    const handle = route.handle as
+      | { name?: string; requiredPermissionList?: () => string[] }
+      | undefined;
+    const rules = [
+      ...inherited,
+      ...(handle?.requiredPermissionList
+        ? [handle.requiredPermissionList]
+        : []),
+    ];
+    if (handle?.name)
+      index.set(handle.name, () => [
+        ...new Set(rules.flatMap((rule) => rule())),
+      ]);
+    for (const [name, rule] of buildRoutePermissionIndex(
+      route.children ?? [],
+      rules
+    ))
+      index.set(name, rule);
+  }
+  return index;
+}

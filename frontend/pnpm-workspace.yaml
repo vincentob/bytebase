@@ -2,6 +2,9 @@ peerDependencyRules:
   allowedVersions:
     typescript: '6'
 
+# Keep this isolated development checkout independent of user-global peer links.
+enableGlobalVirtualStore: false
+
 catalog:
   dompurify: 3.4.14
 

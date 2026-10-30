@@ -99,6 +99,9 @@ type Server struct {
 
 // NewServer creates a server.
 func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
+	if err := validatePermissionPoCProfile(profile); err != nil {
+		return nil, err
+	}
 	s := &Server{
 		profile:   profile,
 		startedTS: time.Now().Unix(),
@@ -272,6 +275,7 @@ func NewServer(ctx context.Context, profile *config.Profile) (*Server, error) {
 		return nil, errors.Wrapf(err, "failed to create MCP server")
 	}
 	configureEchoRouters(s.echoServer, s.lspServer, directorySyncServer, oauth2Service, mcpServer, stripeWebhookHandler, productMetrics, profile)
+	configurePermissionPoC(s, secret)
 
 	serverStarted = true
 	return s, nil
@@ -339,7 +343,7 @@ func (s *Server) Run(ctx context.Context, port int) error {
 	mmm := monitor.NewMemoryMonitor(s.profile)
 	go mmm.Run(ctx, &s.runnerWG)
 
-	address := fmt.Sprintf(":%d", port)
+	address := permissionPoCListenAddress(port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return err

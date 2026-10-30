@@ -40,6 +40,18 @@ type NavQuery = Record<string, unknown>;
 
 let nameIndex = new Map<string, string>();
 
+let permissionIndex = new Map<string, () => string[]>();
+
+export function setRoutePermissionIndex(
+  index: Map<string, () => string[]>
+): void {
+  permissionIndex = index;
+}
+
+export function getRoutePermissions(name: string): string[] | undefined {
+  return permissionIndex.get(name)?.();
+}
+
 export function setRouteNameIndex(index: Map<string, string>): void {
   nameIndex = index;
 }

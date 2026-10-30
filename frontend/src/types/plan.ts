@@ -64,6 +64,11 @@ export const getMinimumRequiredPlan = (feature: PlanFeature): PlanType => {
 
 // Helper function to check if a feature is available for a plan
 export const hasFeature = (plan: PlanType, feature: PlanFeature): boolean => {
+  if (
+    import.meta.env.BB_PERMISSION_POC === "1" &&
+    feature === PlanFeature.FEATURE_CUSTOM_ROLES
+  )
+    return true;
   return planHasFeature(plan, feature);
 };
 

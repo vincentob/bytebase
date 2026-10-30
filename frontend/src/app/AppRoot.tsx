@@ -6,12 +6,21 @@ import {
 } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import { rootGuard } from "@/app/router/guard";
-import { setAppRouter, setRouteNameIndex } from "@/app/router/navigation";
-import { buildRouteNameIndex, routes } from "@/app/router/routes";
+import {
+  setAppRouter,
+  setRouteNameIndex,
+  setRoutePermissionIndex,
+} from "@/app/router/navigation";
+import {
+  buildRouteNameIndex,
+  buildRoutePermissionIndex,
+  routes,
+} from "@/app/router/routes";
 
 // Register the name→path index so the guard + auth lifecycle can resolve their
 // by-name redirects to paths.
 setRouteNameIndex(buildRouteNameIndex());
+setRoutePermissionIndex(buildRoutePermissionIndex());
 
 // Single root-route loader: runs on every navigation (the root route matches
 // every URL). Resolves the matched leaf route's `handle.name` and delegates to

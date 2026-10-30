@@ -10,7 +10,7 @@ import { defineConfig } from "vite";
 import { exportCspHashes } from "./vite-plugin-export-csp-hashes";
 
 const SERVER_PORT = parseInt(process.env.PORT ?? "3000", 10) ?? 3000;
-const LOCAL_ENDPOINT = "http://localhost:8080";
+const LOCAL_ENDPOINT = process.env.BB_PERMISSION_POC_BACKEND || "http://localhost:8080";
 
 const extractHostPort = (url: string) => {
   const parsed = new URL(url);
@@ -121,6 +121,8 @@ export default defineConfig({
     port: SERVER_PORT,
     host: "0.0.0.0",
     proxy: {
+      "/poc": { target: LOCAL_ENDPOINT, changeOrigin: true },
+      "/bytebase.v1.": { target: LOCAL_ENDPOINT, changeOrigin: true },
       "/v1:adminExecute": {
         target: `ws://${extractHostPort(LOCAL_ENDPOINT)}/`,
         changeOrigin: true,

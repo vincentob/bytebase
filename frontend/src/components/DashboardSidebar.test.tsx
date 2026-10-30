@@ -117,6 +117,11 @@ vi.mock("@/hooks/useAppState", () => ({
   useWorkspaceList: () => mocks.workspaceList,
 }));
 
+vi.mock("@/stores/app", () => {
+  const state = { roles: [], workspacePolicy: undefined };
+  return { useAppStore: (selector: (state: unknown) => unknown) => selector(state) };
+});
+
 vi.mock("@/app/router", () => ({
   useCurrentRoute: () => mocks.currentRoute,
   useNavigate: () => ({

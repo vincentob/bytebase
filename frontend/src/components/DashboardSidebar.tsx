@@ -44,6 +44,10 @@ import {
 import { MobileSidebarSwitchers } from "@/components/header/HeaderBreadcrumb";
 import { RouterLink } from "@/components/RouterLink";
 import { useIsSaaSMode } from "@/hooks/useAppState";
+import { useAppStore } from "@/stores/app";
+import { permissionPoCEnabled } from "@/stores/app/selfPermission";
+import type { Permission } from "@/types";
+import { filterPermissionSidebar } from "./permissionSidebar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -281,7 +285,23 @@ const childRouteClass =
 
 export function DashboardSidebar() {
   const rawItems = useSidebarItems();
-  const filteredItems = useMemo(() => filterSidebarList(rawItems), [rawItems]);
+  const roles = useAppStore((state) => state.roles);
+  const policy = useAppStore((state) => state.workspacePolicy);
+  const filteredItems = useMemo(
+    () =>
+      filterSidebarList(
+        permissionPoCEnabled()
+          ? roles && policy
+            ? filterPermissionSidebar(rawItems, (permission) =>
+                useAppStore
+                  .getState()
+                  .hasWorkspacePermission(permission as Permission)
+              )
+            : []
+          : rawItems
+      ),
+    [rawItems, roles, policy]
+  );
   const currentRoute = useCurrentRoute();
   const currentRouteName = currentRoute.name ?? "";
 

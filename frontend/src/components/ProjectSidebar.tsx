@@ -34,8 +34,11 @@ import {
 import { RouterLink } from "@/components/RouterLink";
 import { useRecentVisit } from "@/hooks/useRecentVisit";
 import { useAppStore } from "@/stores/app";
+import { permissionPoCEnabled } from "@/stores/app/selfPermission";
 import { projectNamePrefix } from "@/stores/modules/v1/common";
+import type { Permission } from "@/types";
 import { sqlReviewV2Enabled } from "@/utils/featureGates";
+import { filterPermissionSidebar } from "./permissionSidebar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -242,11 +245,31 @@ const childRouteClass =
 
 export function ProjectSidebar() {
   const rawItems = useSidebarItems();
-  const filteredItems = useMemo(() => filterSidebarList(rawItems), [rawItems]);
-
   const route = useCurrentRoute();
   const currentRouteName = route.name?.toString() ?? "";
   const projectId = (route.params.projectId as string | undefined) ?? "";
+  const roles = useAppStore((state) => state.roles);
+  const policies = useAppStore((state) => state.projectPoliciesByName);
+  const filteredItems = useMemo(
+    () =>
+      filterSidebarList(
+        permissionPoCEnabled()
+          ? roles && policies
+            ? filterPermissionSidebar(rawItems, (permission) => {
+                const store = useAppStore.getState();
+                const project = store.getProjectByName(
+                  projectNamePrefix + projectId
+                );
+                return (
+                  !!project &&
+                  store.hasProjectPermission(project, permission as Permission)
+                );
+              })
+            : []
+          : rawItems
+      ),
+    [rawItems, roles, policies, projectId]
+  );
 
   const { record } = useRecentVisit();
   const recordVisitRef = useRef(record);

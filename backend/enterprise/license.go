@@ -286,6 +286,9 @@ func (s *LicenseService) GetEffectivePlan(ctx context.Context, workspaceID strin
 
 // IsFeatureEnabled returns whether a feature is enabled.
 func (s *LicenseService) IsFeatureEnabled(ctx context.Context, workspaceID string, f v1pb.PlanFeature) error {
+	if permissionPoCCustomRoles() && f == v1pb.PlanFeature_FEATURE_CUSTOM_ROLES {
+		return nil
+	}
 	plan := s.GetEffectivePlan(ctx, workspaceID)
 	features, ok := planFeatureMatrix[plan]
 	if !ok || !features[f] {
