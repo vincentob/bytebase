@@ -1,0 +1,99 @@
+bytebase_url: https://bytebase.invalid
+gitlab_url: https://gitlab.invalid
+environments:
+  sandbox: { title: Sandbox, order: 0, color: { red: 0, green: 0, blue: 1 } }
+  prod: { title: Prod, order: 1, color: { red: 1, green: 0, blue: 0 } }
+users: {}
+workspace_iam:
+  roles/workspaceAdmin: [user:owner@example.com]
+instances:
+  unsafe-scope:
+    project: unsafe-scope
+    environment: sandbox
+    engine: POSTGRES
+    host: localhost
+    port: 5432
+    username: mock
+  forbidden-prod:
+    project: sandbox-only
+    environment: prod
+    engine: POSTGRES
+    host: localhost
+    port: 5432
+    username: mock
+sql_review:
+  id: test
+  title: Test
+  rules:
+    - { type: TABLE_REQUIRE_PK, engine: POSTGRES, level: ERROR }
+
+# YAML anchors keep each rejection case focused on the field under test.
+test_owners: &owners [user:owner@example.com]
+test_members: &members
+  roles/pocsubmitter: [user:leader@example.com]
+test_grant: &grant
+  member: user:leader@example.com
+  approved_by: user:owner@example.com
+  reason: Test rejection
+  approved_at: "2026-01-01T00:00:00Z"
+  expires_at: "2026-01-01T01:00:00Z"
+
+projects:
+  unapproved:
+    title: Unapproved
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, approved_by: "user:stranger@example.com" }
+  too-long:
+    title: Too long
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, expires_at: "2026-01-01T09:00:00Z" }
+  no-reason:
+    title: No reason
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, reason: " " }
+  non-member:
+    title: Non member
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, member: "user:stranger@example.com" }
+  unscoped-table:
+    title: Unscoped table
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, tables: [orders] }
+  cross-project:
+    title: Cross project
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, database: projects/other/instances/other/databases/casino }
+  unsafe-scope:
+    title: Unsafe scope
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, database: 'projects/unsafe-scope/instances/unsafe-scope/databases/a"b' }
+  future-approval:
+    title: Future approval
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, approved_at: "2999-01-01T00:00:00Z", expires_at: "2999-01-01T01:00:00Z" }
+  invalid-time:
+    title: Invalid time
+    owners: *owners
+    members: *members
+    query_grants:
+      test: { <<: *grant, expires_at: invalid }
+  sandbox-only:
+    title: Sandbox only
+    owners: *owners
+    allowed_environments: [sandbox]

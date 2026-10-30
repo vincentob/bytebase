@@ -1,0 +1,144 @@
+bytebase_url: https://bytebase.invalid
+gitlab_url: https://gitlab.invalid
+environments:
+  sandbox:
+    title: Sandbox
+    order: 0
+    color:
+      red: 0.2
+      green: 0.6
+      blue: 0.86
+  prod:
+    title: Prod
+    order: 1
+    color:
+      red: 0.309804
+      green: 0.27451
+      blue: 0.898039
+users:
+  test-dev:
+    email: test-dev@example.com
+    title: Test 普通开发
+  test-leader:
+    email: test-leader@example.com
+    title: Test 开发 Leader
+  test-dba:
+    email: test-dba@example.com
+    title: Test DBA
+workspace_iam:
+  roles/workspaceAdmin:
+  - user:owner@example.com
+  - serviceAccount:terraform@service.bytebase.com
+  roles/workspaceDBA:
+  - user:test-dba@example.com
+  roles/projectOwner:
+  - serviceAccount:terraform@service.bytebase.com
+  roles/pocbase:
+  - user:test-dev@example.com
+  - user:test-leader@example.com
+projects:
+  qstar:
+    title: QStar
+    owners:
+    - user:owner@example.com
+  rusgaas-20101:
+    title: Rusgaas-20101
+    owners:
+    - user:owner@example.com
+    members:
+      roles/pocsubmitter:
+      - user:test-leader@example.com
+    query_grants: {}
+    settings:
+      enforce_issue_title: true
+      enforce_sql_review: true
+      require_issue_approval: true
+      require_plan_check_no_error: true
+      allow_request_role: false
+    gitops:
+      namespace: example/dbops
+      repo: dbops
+      stages:
+      - sandbox
+      - prod
+  rusgaas-20101-sandbox:
+    title: Rusgaas-20101 Sandbox
+    owners:
+    - user:owner@example.com
+    allowed_environments:
+    - sandbox
+    members:
+      roles/pocdeveloper:
+      - user:test-dev@example.com
+      roles/pocsubmitter:
+      - user:test-leader@example.com
+    query_grants: {}
+    settings:
+      enforce_issue_title: true
+      enforce_sql_review: true
+      require_issue_approval: true
+      require_plan_check_no_error: true
+      allow_request_role: false
+instances:
+  rusgaas-20101-sandbox:
+    project: rusgaas-20101
+    environment: sandbox
+    engine: POSTGRES
+    host: database.invalid
+    port: 5432
+    username: bytebase_example
+    database: postgres
+    use_ssl: true
+  rusgaas-20101-prod-test:
+    project: rusgaas-20101
+    environment: prod
+    engine: POSTGRES
+    host: database.invalid
+    port: 5432
+    username: bytebase_example
+    database: postgres
+    use_ssl: true
+instance_aliases:
+  rusgaas-20101-sandbox-dev:
+    source: rusgaas-20101-sandbox
+    project: rusgaas-20101-sandbox
+sql_review:
+  id: rg-default
+  title: RG default
+  rules:
+  - type: TABLE_REQUIRE_PK
+    engine: POSTGRES
+    level: ERROR
+  - type: TABLE_NO_FOREIGN_KEY
+    engine: POSTGRES
+    level: WARNING
+  - type: COLUMN_NO_NULL
+    engine: POSTGRES
+    level: WARNING
+  - type: COLUMN_DISALLOW_CHANGE_TYPE
+    engine: POSTGRES
+    level: WARNING
+  - type: STATEMENT_WHERE_REQUIRE_UPDATE_DELETE
+    engine: POSTGRES
+    level: ERROR
+  - type: STATEMENT_DISALLOW_RM_TBL_CASCADE
+    engine: POSTGRES
+    level: ERROR
+  - type: STATEMENT_DISALLOW_COMMIT
+    engine: POSTGRES
+    level: ERROR
+  - type: STATEMENT_DISALLOW_TRUNCATE
+    engine: POSTGRES
+    level: ERROR
+  - type: STATEMENT_CREATE_SPECIFY_SCHEMA
+    engine: POSTGRES
+    level: WARNING
+  - type: INDEX_CREATE_CONCURRENTLY
+    engine: POSTGRES
+    level: WARNING
+  - type: INDEX_NO_DUPLICATE_COLUMN
+    engine: POSTGRES
+    level: ERROR
+  - type: SCHEMA_BACKWARD_COMPATIBILITY
+    engine: POSTGRES
+    level: WARNING

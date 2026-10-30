@@ -1,0 +1,24 @@
+name: bytebase-permission-tests
+
+services:
+  bytebase:
+    image: bytebase-permission-poc:local
+    pull_policy: never
+    init: true
+    labels:
+      dev.bytebase.permission-tests: "true"
+    ports:
+      - "127.0.0.1:17880:8080"
+    command: ["--port", "8080", "--data", "/var/opt/bytebase", "--external-url", "http://127.0.0.1:17880"]
+    volumes:
+      - metadata:/var/opt/bytebase
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    stop_grace_period: 60s
+
+volumes:
+  metadata:

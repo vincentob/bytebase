@@ -6,9 +6,12 @@ RUN npm i -g pnpm@11.17.0
 
 WORKDIR /frontend-build
 
-COPY . .
+COPY frontend ./frontend
+COPY backend/enterprise/plan.yaml ./backend/enterprise/plan.yaml
+COPY backend/common/permission/permission.yaml ./backend/common/permission/permission.yaml
+COPY backend/api/mcp/gen/openapi.yaml ./backend/api/mcp/gen/openapi.yaml
 
-RUN pnpm --dir ./frontend install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store pnpm --dir ./frontend install --frozen-lockfile
 RUN BB_PERMISSION_POC="${BB_PERMISSION_POC}" pnpm --dir ./frontend release-docker
 
 FROM golang:1.27.1-alpine3.23 AS backend
@@ -23,13 +26,14 @@ RUN apk add --no-cache clang krb5-dev binutils-gold
 
 WORKDIR /backend-build
 
-COPY . .
+COPY go.mod go.sum ./
+COPY backend ./backend
 
 # Copy frontend asset
 COPY --from=frontend /frontend-build/frontend/dist ./backend/server/dist
 
 # -ldflags="-w -s" means omit DWARF symbol table and the symbol table and debug information
-RUN CC=clang go build \
+RUN --mount=type=cache,target=/root/.cache/go-build CC=clang go build \
   --tags "${GO_BUILD_TAGS}" \
   -ldflags="-extldflags '-Wl,-z,stack-size=0x1000000' -w -s -X 'github.com/bytebase/bytebase/backend/bin/server/cmd.version=${VERSION}' -X 'github.com/bytebase/bytebase/backend/bin/server/cmd.gitcommit=${GIT_COMMIT}'" \
   -o bytebase ./backend/bin/server/main.go
@@ -48,7 +52,7 @@ RUN addgroup --gid 113 --system bytebase && adduser --uid 113 --system bytebase 
 # Directory to store the data, which can be referenced as the mounting point.
 RUN mkdir -p /var/opt/bytebase
 RUN apk update
-RUN apk add --no-cache gnupg curl psmisc procps ncurses krb5
+RUN apk add --no-cache gnupg curl psmisc procps ncurses krb5 python3 py3-yaml
 # Install postgresql.
 RUN apk add postgresql16
 # Generate en_US.UTF-8 locale which is needed to start postgres server.
@@ -59,6 +63,8 @@ RUN apk add postgresql16
 RUN touch /etc/bb.env
 COPY --from=backend /backend-build/bytebase /usr/local/bin/
 COPY --from=backend /etc/ssl/certs /etc/ssl/certs
+COPY scripts/poc /opt/bytebase/scripts/poc
+COPY poc/config.yaml poc/roles.yaml /opt/bytebase/poc/
 
 ENV OPENSSL_CONF=/etc/ssl/
 ENV GOGC=50
