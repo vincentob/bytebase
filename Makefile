@@ -46,9 +46,9 @@ build: validate ## Build the permission PoC image from the current source
 	@$(INFO) "Building the permission PoC image"
 	@$(COMPOSE) build bytebase
 
-up: validate ## Rebuild the image and recreate Bytebase; preserve data volumes
+up: validate ## Rebuild the image and recreate Bytebase; preserve ~/.bytebase/data
 	@$(INFO) "Building and starting the permission PoC"
-	@$(COMPOSE) up -d --build --force-recreate --wait --wait-timeout 300 bytebase
+	@$(COMPOSE) up -d --build --force-recreate --remove-orphans --wait --wait-timeout 300 bytebase
 
 status: ## Show container status
 	@$(COMPOSE) ps
@@ -56,9 +56,9 @@ status: ## Show container status
 logs: ## Follow Bytebase logs
 	@$(COMPOSE) logs --follow --tail=100 bytebase
 
-down: ## Stop the stack and preserve data volumes
-	@$(INFO) "Stopping the stack; data volumes are preserved"
-	@$(COMPOSE) down
+down: ## Stop Bytebase and preserve ~/.bytebase/data
+	@$(INFO) "Stopping Bytebase; the mounted data directory is preserved"
+	@$(COMPOSE) down --remove-orphans
 
 ##@ Tools
 .PHONY: validate help

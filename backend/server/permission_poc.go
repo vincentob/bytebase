@@ -30,6 +30,9 @@ func validatePermissionPoCProfile(profile *config.Profile) error {
 	if profile.Mode != common.ReleaseModeDev || profile.SaaS {
 		return errors.New("permission PoC requires a self-hosted development build")
 	}
+	if profile.IsDocker && profile.UseEmbedDB() {
+		return nil
+	}
 	metadata, err := url.Parse(profile.PgURL)
 	if err != nil || metadata.Scheme != "postgresql" || !isPoCLoopback(metadata.Hostname()) {
 		return errors.New("permission PoC requires an explicit loopback PostgreSQL URL")

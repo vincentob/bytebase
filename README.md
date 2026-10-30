@@ -109,55 +109,62 @@ We welcome contributions!
 
 ### Permission PoC with Docker Compose
 
-The repository's `docker-compose.yml` builds the frontend and backend from the
-current checkout and runs the permission PoC with a separate PostgreSQL 16 metadata
-database. It requires Docker Engine with the Compose plugin and Make; Node.js, Go,
-and PNPM run inside the build stages.
+The repository's `docker-compose.yml` builds a single Bytebase image from the
+current checkout. Like the official Docker image, it embeds the frontend and
+PostgreSQL and mounts `~/.bytebase/data` at `/var/opt/bytebase`. The default HTTP
+port is `8088`. Docker Engine with the Compose plugin and Make are required;
+Node.js, Go, and PNPM run inside the build stages.
 
 ```bash
 # First start on a server: use the URL users will actually visit.
-BYTEBASE_EXTERNAL_URL=http://your-server:8080 make up
+BYTEBASE_EXTERNAL_URL=http://your-server:8088 make up
 
-# After editing code, rebuild the image and replace the application container.
-# Keep the same BYTEBASE_EXTERNAL_URL on subsequent invocations.
-BYTEBASE_EXTERNAL_URL=http://your-server:8080 make up
+# After editing code, rebuild and restart with the same external URL.
+BYTEBASE_EXTERNAL_URL=http://your-server:8088 make up
 
 make status
 make logs
 make down
 ```
 
-`make up` always invokes the image build, recreates Bytebase, and waits for its
-health check. Docker reuses unchanged build layers. Both metadata and Bytebase's
-data directory use named volumes, which survive rebuilds and `make down`. A fresh
-volume starts a new workspace; existing users, role definitions, and IAM bindings
-are not copied from another installation.
+`make up` builds the local image, recreates the `bytebase` container with an init
+process, removes obsolete containers from this Compose project, and waits for its
+health check. Docker reuses unchanged build layers.
+`make build` builds without starting the container; `make validate` checks the
+Compose configuration. Stop any existing `bytebase` container before switching to
+this Compose setup.
 
-| Command | Behavior |
-| --- | --- |
-| `make build` | Build the application image without starting containers. |
-| `make up` | Build and start the stack, replacing the application container. |
-| `make status` | Show container status and published ports. |
-| `make logs` | Follow the most recent 100 application log lines. |
-| `make down` | Stop and remove containers, preserving named volumes. |
-| `make validate` | Validate Compose configuration without printing credentials. |
+The bind mount uses the home directory of the user running Compose. Metadata,
+users, roles, and settings live in `~/.bytebase/data/pgdata` and survive rebuilds
+and `make down`. An empty directory starts a new workspace. Data from the previous
+Compose setup's separate PostgreSQL volume is not automatically migrated into
+this directory.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `BYTEBASE_EXTERNAL_URL` | `http://localhost:8080` | Public URL, including the port when needed. |
-| `BYTEBASE_BIND_ADDRESS` | `0.0.0.0` | Host address for the HTTP port; use `127.0.0.1` for a local reverse proxy. |
-| `BYTEBASE_PORT` | `8080` | Published HTTP port; also update the external URL when changing it. |
-| `BYTEBASE_POSTGRES_PASSWORD` | `bytebase-poc-local` | Metadata database password; use URL-safe characters and set it consistently before the first start. |
+| `BYTEBASE_EXTERNAL_URL` | `http://localhost:8088` | Public URL, including the port when needed. |
+| `BYTEBASE_BIND_ADDRESS` | `0.0.0.0` | Host address for HTTP; use `127.0.0.1` for a local reverse proxy. |
+| `BYTEBASE_PORT` | `8088` | Published HTTP port; also update the external URL when changing it. |
 | `GIT_COMMIT` | Current commit via Make, otherwise `local` | Revision recorded in the built image. |
 
+After `make build`, the same image can also run directly:
+
+```bash
+docker run --rm --init \
+  --name bytebase \
+  --publish 8088:8080 \
+  --volume ~/.bytebase/data:/var/opt/bytebase \
+  bytebase-permission-poc:local \
+  --external-url http://your-server:8088
+```
+
 The frontend build enables `BB_PERMISSION_POC=1`; the backend uses the
-`embed_frontend,docker,permission_poc` build tags. The `release` tag is deliberately
-excluded because the permission PoC rejects production mode. Bytebase shares the
-PostgreSQL container's network namespace to connect to
-`127.0.0.1/bytebase_permission_poc`, as required by the profile guard. PostgreSQL
-listens only on loopback; only Bytebase's HTTP port is published. The image embeds
-the frontend, so no Vite server is needed. The standard Docker build retains its
-production tags and disables the permission PoC by default.
+`embed_frontend,docker,permission_poc` build tags. The image sets
+`BB_PERMISSION_POC_CONTAINER=1` to listen on the container's network interface.
+The profile guard permits Docker's embedded metadata database while retaining the
+self-hosted development requirement and the isolated loopback database check for
+external metadata. The standard Docker build retains its production tags and
+disables the permission PoC by default.
 
 ```bash
 # Setup a postgres database with user bbdev and database bbdev

@@ -14,17 +14,66 @@ import (
 )
 
 func TestPermissionPoCProfile(t *testing.T) {
-	valid := config.Profile{Mode: common.ReleaseModeDev, PgURL: "postgresql://poc@127.0.0.1:17882/bytebase_permission_poc"}
-	require.NoError(t, validatePermissionPoCProfile(&valid))
-	for _, profile := range []*config.Profile{
-		{Mode: common.ReleaseModeProd, PgURL: valid.PgURL},
-		{Mode: common.ReleaseModeDev, PgURL: "postgresql://poc@db.example.com/bytebase_permission_poc"},
-		{Mode: common.ReleaseModeDev, PgURL: "postgresql://poc@127.0.0.1/production"},
-		{Mode: common.ReleaseModeDev, PgURL: valid.PgURL, SaaS: true},
+	for _, tc := range []struct {
+		name    string
+		profile *config.Profile
+		allowed bool
+	}{
+		{
+			name:    "isolated loopback metadata",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, PgURL: "postgresql://poc@127.0.0.1:17882/bytebase_permission_poc"},
+			allowed: true,
+		},
+		{
+			name:    "embedded metadata in Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, IsDocker: true},
+			allowed: true,
+		},
+		{
+			name:    "embedded metadata outside Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeDev},
+		},
+		{
+			name:    "production mode",
+			profile: &config.Profile{Mode: common.ReleaseModeProd, PgURL: "postgresql://poc@127.0.0.1:17882/bytebase_permission_poc"},
+		},
+		{
+			name:    "embedded metadata in production Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeProd, IsDocker: true},
+		},
+		{
+			name:    "remote metadata in Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, IsDocker: true, PgURL: "postgresql://poc@db.example.com/bytebase_permission_poc"},
+		},
+		{
+			name:    "non-isolated external metadata in Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, IsDocker: true, PgURL: "postgresql://poc@127.0.0.1/production"},
+		},
+		{
+			name:    "SaaS mode",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, PgURL: "postgresql://poc@127.0.0.1:17882/bytebase_permission_poc", SaaS: true},
+		},
+		{
+			name:    "embedded metadata in SaaS Docker",
+			profile: &config.Profile{Mode: common.ReleaseModeDev, IsDocker: true, SaaS: true},
+		},
 	} {
-		require.Error(t, validatePermissionPoCProfile(profile))
+		t.Run(tc.name, func(t *testing.T) {
+			err := validatePermissionPoCProfile(tc.profile)
+			if tc.allowed {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
 	}
+}
+
+func TestPermissionPoCListenAddress(t *testing.T) {
+	t.Setenv("BB_PERMISSION_POC_CONTAINER", "")
 	require.Equal(t, "127.0.0.1:17880", permissionPoCListenAddress(17880))
+	t.Setenv("BB_PERMISSION_POC_CONTAINER", "1")
+	require.Equal(t, ":17880", permissionPoCListenAddress(17880))
 }
 
 func TestPersonalPermissionPolicy(t *testing.T) {

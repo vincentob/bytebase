@@ -2,5 +2,5 @@
 
 package enterprise
 
-// The server rejects production mode and non-loopback metadata for this build.
+// The server restricts this build to self-hosted development and local metadata.
 func permissionPoCCustomRoles() bool { return true }

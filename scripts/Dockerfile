@@ -37,6 +37,7 @@ RUN CC=clang go build \
 FROM alpine:3.24 AS monolithic
 ARG VERSION
 ARG GIT_COMMIT
+ARG BB_PERMISSION_POC=0
 
 # See https://github.com/opencontainers/image-spec/blob/master/annotations.md
 LABEL org.opencontainers.image.version=${VERSION}
@@ -61,6 +62,7 @@ COPY --from=backend /etc/ssl/certs /etc/ssl/certs
 
 ENV OPENSSL_CONF=/etc/ssl/
 ENV GOGC=50
+ENV BB_PERMISSION_POC_CONTAINER=${BB_PERMISSION_POC}
 
 CMD ["--port", "8080", "--data", "/var/opt/bytebase"]
 

@@ -1,28 +1,8 @@
 name: bytebase-permission-poc
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    # Share loopback with Bytebase to satisfy the permission PoC profile guard.
-    command: ["postgres", "-c", "listen_addresses=127.0.0.1"]
-    environment:
-      POSTGRES_USER: bytebase
-      POSTGRES_PASSWORD: ${BYTEBASE_POSTGRES_PASSWORD:-bytebase-poc-local}
-      POSTGRES_DB: bytebase_permission_poc
-    ports:
-      # The HTTP listener belongs to Bytebase in this shared network namespace.
-      - "${BYTEBASE_BIND_ADDRESS:-0.0.0.0}:${BYTEBASE_PORT:-8080}:8080"
-    volumes:
-      - metadata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U bytebase -d bytebase_permission_poc"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
-
   bytebase:
+    container_name: bytebase
     image: bytebase-permission-poc:local
     pull_policy: build
     build:
@@ -36,23 +16,17 @@ services:
         GO_BUILD_TAGS: embed_frontend,docker,permission_poc
     restart: unless-stopped
     init: true
-    network_mode: service:postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-        restart: true
-    environment:
-      BB_PERMISSION_POC_CONTAINER: "1"
-      PG_URL: postgresql://bytebase:${BYTEBASE_POSTGRES_PASSWORD:-bytebase-poc-local}@127.0.0.1:5432/bytebase_permission_poc?sslmode=disable
+    ports:
+      - "${BYTEBASE_BIND_ADDRESS:-0.0.0.0}:${BYTEBASE_PORT:-8088}:8080"
     command:
       - --port
       - "8080"
       - --data
       - /var/opt/bytebase
       - --external-url
-      - ${BYTEBASE_EXTERNAL_URL:-http://localhost:8080}
+      - ${BYTEBASE_EXTERNAL_URL:-http://localhost:8088}
     volumes:
-      - bytebase-data:/var/opt/bytebase
+      - ~/.bytebase/data:/var/opt/bytebase
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/healthz"]
       interval: 10s
@@ -60,7 +34,3 @@ services:
       retries: 30
       start_period: 30s
     stop_grace_period: 60s
-
-volumes:
-  metadata:
-  bytebase-data:
