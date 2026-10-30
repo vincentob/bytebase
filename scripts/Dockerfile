@@ -52,7 +52,7 @@ RUN addgroup --gid 113 --system bytebase && adduser --uid 113 --system bytebase 
 # Directory to store the data, which can be referenced as the mounting point.
 RUN mkdir -p /var/opt/bytebase
 RUN apk update
-RUN apk add --no-cache gnupg curl psmisc procps ncurses krb5 python3 py3-yaml
+RUN apk add --no-cache gnupg curl psmisc procps ncurses krb5
 # Install postgresql.
 RUN apk add postgresql16
 # Generate en_US.UTF-8 locale which is needed to start postgres server.
@@ -63,8 +63,6 @@ RUN apk add postgresql16
 RUN touch /etc/bb.env
 COPY --from=backend /backend-build/bytebase /usr/local/bin/
 COPY --from=backend /etc/ssl/certs /etc/ssl/certs
-COPY scripts/poc /opt/bytebase/scripts/poc
-COPY poc/config.yaml poc/roles.yaml /opt/bytebase/poc/
 
 ENV OPENSSL_CONF=/etc/ssl/
 ENV GOGC=50

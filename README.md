@@ -166,21 +166,9 @@ self-hosted development requirement and the isolated loopback database check for
 external metadata. The standard Docker build retains its production tags and
 disables the permission PoC by default.
 
-### Migrated roles and permission checks
-
-After the application is running and an admin account exists, run `make roles-sync`
-to install or update the four custom role definitions from `poc/roles.yaml`. The
-command prompts for admin credentials or reads `BYTEBASE_ADMIN_TOKEN`, and
-preserves account and project memberships. Assign `pocbase` plus project-scoped
-`pocdeveloper`/`pocsubmitter` to Dev/Leader accounts; Admin uses `workspaceAdmin`.
-
-The migrated [permission fixture suite](poc/README.md) uses a separate container
-and volume: `make poc:up`, `make poc:seed`, then `make poc:test`. It includes the
-API/SQL isolation and expiry checks and three browser tests. The migrated
-[deployment policy](deploy/terraform/README.md) includes Sandbox restrictions,
-instance aliases, expiring read grants, GitOps identities and five Terraform mock
-tests. Its sample configuration is sanitized; credentials and existing data must
-be supplied separately. `make up` does not apply Terraform policy.
+Custom role definitions and IAM bindings are managed through the standard
+Bytebase UI and APIs. Deployment-specific configuration and initialization are
+maintained by the infrastructure repository.
 
 ```bash
 # Setup a postgres database with user bbdev and database bbdev

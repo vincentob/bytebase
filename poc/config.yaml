@@ -1,5 +1,0 @@
-api_url: http://127.0.0.1:17880
-accounts:
-  owner: owner@permission-poc.invalid
-  dev: dev@permission-poc.invalid
-  leader: leader@permission-poc.invalid

@@ -50,13 +50,3 @@ scripts/azure-marketplace/*.backup
 # superpowers brainstorm sessions (visual companion mockups)
 .superpowers/
 .gocache/
-__pycache__/
-poc/.state/
-poc/.venv/
-poc/artifacts/
-deploy/terraform/.terraform/
-deploy/terraform/*.tfstate*
-deploy/terraform/*.tfplan
-deploy/terraform/credentials.env
-deploy/terraform/*.auto.tfvars*
-deploy/terraform/*.tfvars*

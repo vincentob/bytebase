@@ -16,6 +16,12 @@ Bytebase is the standard for database development. Every product and engineering
 - Before creating a PR, complete [docs/pre-pr-checklist.md](docs/pre-pr-checklist.md).
 - `AGENTS.md` files are the instruction source of truth; `CLAUDE.md` files import them.
 
+## Repository ownership
+
+- This repository owns Bytebase application code, generic authorization, unit tests, and image build/development commands.
+- Organization-specific roles, IAM assignments, Terraform, instance configuration, and PoC orchestration belong in `rg/bytebase`. Reference that repository without copying its operational configuration into this source tree or the application image.
+- Use Go's default global build cache and system temporary directories for generated test binaries.
+
 ## Metadata and API conventions
 
 - The metadata schema is `backend/migrator/migration/LATEST.sql`; migrations live in `backend/migrator/migration/<major.minor>/`.
