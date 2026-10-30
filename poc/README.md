@@ -47,7 +47,11 @@ make poc:stop
 The fixture UI is at `http://127.0.0.1:17880`. Random passwords for
 `owner@permission-poc.invalid`, `dev@permission-poc.invalid`, and
 `leader@permission-poc.invalid` are stored in `.state/accounts.yaml` with mode
-`600`. This file and all generated artifacts are ignored by Git and Docker builds.
+`600`. The `.state` directory holds the fixture account and database credentials,
+so they remain consistent with the retained test volume. Go uses its normal
+global build cache; the Linux test binary is created in the system temporary
+directory and removed after the run. Generated state and artifacts are ignored
+by Git and Docker builds.
 
 | Command | Behavior |
 | --- | --- |

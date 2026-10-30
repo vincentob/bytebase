@@ -4,9 +4,11 @@ import argparse
 import getpass
 import json
 import os
+from pathlib import Path
 import secrets
 import subprocess
 import sys
+import tempfile
 from urllib.parse import urlsplit
 
 import yaml
@@ -80,14 +82,15 @@ def browser_test():
 
 
 def go_test():
-    state_directory()
     architecture = run(["docker", "info", "--format", "{{.Architecture}}"], capture=True).stdout.strip()
     arch = {"aarch64": "arm64", "arm64": "arm64", "x86_64": "amd64", "amd64": "amd64"}.get(architecture)
     if not arch:
         raise RuntimeError("Unsupported Docker architecture")
-    env = {"GOOS": "linux", "GOARCH": arch, "CGO_ENABLED": "0", "GOCACHE": str(STATE / "go-cache")}
-    run(["go", "test", "-c", "-tags", "permission_poc", "-o", STATE / "server.test", "./backend/server"], env=env)
-    run(["docker", "run", "--rm", "--network", "none", "-v", f"{STATE / 'server.test'}:/server.test:ro", "debian:bookworm-slim", "/server.test", "-test.run", "^(TestPermissionPoCProfile|TestPermissionPoCListenAddress|TestPersonalPermissionPolicy)$", "-test.v"])
+    env = {"GOOS": "linux", "GOARCH": arch, "CGO_ENABLED": "0"}
+    with tempfile.TemporaryDirectory(prefix="bytebase-permission-go-", dir="/tmp") as directory:
+        binary = Path(directory) / "server.test"
+        run(["go", "test", "-c", "-tags", "permission_poc", "-o", binary, "./backend/server"], env=env)
+        run(["docker", "run", "--rm", "--network", "none", "-v", f"{binary}:/server.test:ro", "debian:bookworm-slim", "/server.test", "-test.run", "^(TestPermissionPoCProfile|TestPermissionPoCListenAddress|TestPersonalPermissionPolicy)$", "-test.v"])
 
 
 def main():
