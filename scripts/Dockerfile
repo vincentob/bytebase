@@ -1,5 +1,6 @@
 FROM node:24.18.1-slim AS frontend
 ARG GIT_COMMIT
+ARG BB_PERMISSION_POC=0
 
 RUN npm i -g pnpm@11.17.0
 
@@ -7,12 +8,13 @@ WORKDIR /frontend-build
 
 COPY . .
 
-RUN pnpm --dir ./frontend i
-RUN pnpm --dir ./frontend release-docker
+RUN pnpm --dir ./frontend install --frozen-lockfile
+RUN BB_PERMISSION_POC="${BB_PERMISSION_POC}" pnpm --dir ./frontend release-docker
 
 FROM golang:1.27.1-alpine3.23 AS backend
 ARG VERSION
 ARG GIT_COMMIT
+ARG GO_BUILD_TAGS=release,embed_frontend,docker
 
 ADD go.mod go.sum /
 
@@ -28,7 +30,7 @@ COPY --from=frontend /frontend-build/frontend/dist ./backend/server/dist
 
 # -ldflags="-w -s" means omit DWARF symbol table and the symbol table and debug information
 RUN CC=clang go build \
-  --tags "release,embed_frontend,docker" \
+  --tags "${GO_BUILD_TAGS}" \
   -ldflags="-extldflags '-Wl,-z,stack-size=0x1000000' -w -s -X 'github.com/bytebase/bytebase/backend/bin/server/cmd.version=${VERSION}' -X 'github.com/bytebase/bytebase/backend/bin/server/cmd.gitcommit=${GIT_COMMIT}'" \
   -o bytebase ./backend/bin/server/main.go
 
